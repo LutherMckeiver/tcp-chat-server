@@ -9,3 +9,7 @@ class ChatClient(object):
         self.nick = 'user_{}'.format(random.random())
         self.conn = conn
         self.addr = addr
+
+    def update_nick(self, new_nick):
+        self.nick = new_nick
+        return self

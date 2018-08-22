@@ -4,7 +4,7 @@ import socket
 import sys
 
 
-PORT = 5004
+PORT = 9000
 
 
 class ChatServer(threading.Thread):
@@ -37,34 +37,24 @@ class ChatServer(threading.Thread):
                 [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
                 self.client_pool = [c for c in self.client_pool if c.id != id]
                 conn.close()
+
             elif data[0] == '@list':
-                for client in self.client_pool:
-                    reply = client.nick.encode()
-                    conn.sendall(reply)
+                reply = ''
+                if len(self.client_pool) > 1:
+                    for c in self.client_pool:
+                        reply += f'{c.nick}\n'
+                    conn.sendall(reply.encode())
+                else:
+                    conn.sendall(b'You are the only one dude.\n')
+
             elif data[0] == '@nickname':
-                print('client pool', self.client_pool)
-                counter = 0
-                # change if statement to use UUID 
-                # Looks like it's not targeting the proper user.
-                for client in self.client_pool:
-    
-                    if client.nick == nick:
-                        import pdb; pdb.set_trace()
-                        # print('hitting', client.nick)
-                        # print('data:', data[1])
-                        # print('client_pool[client]', self.client_pool[counter].nick)
-                        self.client_pool[counter].nick = data[1]
-                        # print('client_pool[client]', self.client_pool[counter].nick)
-                    counter += 1  
+                for c in self.client_pool:
+                    if c.id == id:
+                        c.update_nick(data[1].strip())
 
-
-                reply = nick.encode() + b'has changed their name to ' + data[1].encode()
-                conn.sendall(reply)
-
-                
-                [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
-                self.client_pool = [c for c in self.client_pool if c.id != id]
-        
+                for idx in range(len(self.client_pool)):
+                    if self.client_pool[idx].id == id:
+                        self.client_pool[idx].nick = data[1].strip()
 
             else:
                 conn.sendall(b'Invalid command. Please try again.\n')
@@ -103,5 +93,11 @@ if __name__ == '__main__':
     try:
         server.run()
     except KeyboardInterrupt:
+        [c.conn.sendall(b'You have been blocked') for c in server.client_pool]
         [c.conn.close() for c in server.client_pool if len(server.client_pool)]
-        server.exit()
+
+
+
+
+
+
